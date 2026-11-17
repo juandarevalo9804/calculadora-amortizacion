@@ -56,7 +56,21 @@
         </section>
 
         <section>
-          <h2>Opciones</h2>
+          <h2>
+            Opciones
+            <button
+              class="info-button"
+              type="button"
+              aria-label="Explicación del momento del pago"
+              aria-expanded="false"
+              aria-controls="ayudaMomentoPago"
+              aria-describedby="ayudaMomentoPago"
+            >i</button>
+            <span id="ayudaMomentoPago" class="info-tooltip" role="tooltip">
+              <strong>Vencida:</strong> la cuota se paga al final del periodo; los intereses de ese periodo se calculan sobre el saldo.<br>
+              <strong>Anticipada:</strong> la cuota se paga al inicio del periodo. La primera cuota se paga en el periodo cero y no genera intereses.
+            </span>
+          </h2>
           <label>
             <span>Momento del pago</span>
             <select id="momentoPago">
@@ -67,7 +81,21 @@
         </section>
 
         <section>
-          <h2>Período de gracia</h2>
+          <h2>
+            Período de gracia
+            <button
+              class="info-button"
+              type="button"
+              aria-label="Explicación del período de gracia"
+              aria-expanded="false"
+              aria-controls="ayudaGracia"
+              aria-describedby="ayudaGracia"
+            >i</button>
+            <span id="ayudaGracia" class="info-tooltip" role="tooltip">
+              <strong>Se capitalizan:</strong> no pagas intereses durante la gracia; se agregan al saldo del préstamo, que crece y genera intereses.<br>
+              <strong>Se pagan solo intereses:</strong> pagas los intereses de cada periodo de gracia y el saldo del capital permanece igual.
+            </span>
+          </h2>
           <label class="inline">
             <input id="activarGracia" type="checkbox" />
             <span>Activar gracia</span>

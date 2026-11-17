@@ -383,6 +383,48 @@ elementos.agregarAbono.addEventListener('click', () => {
   elementos.listaAbonos.appendChild(crearFilaAbono());
 });
 
+const botonesAyuda = [...document.querySelectorAll('.info-button[aria-controls]')];
+const ayudas = botonesAyuda.map((boton) => ({
+  boton,
+  tooltip: document.getElementById(boton.getAttribute('aria-controls'))
+}));
+
+ayudas.forEach(({ boton, tooltip }) => {
+  boton.closest('h2').addEventListener('pointerleave', () => {
+    tooltip.classList.remove('is-dismissed');
+  });
+
+  boton.addEventListener('click', () => {
+    const abierto = boton.getAttribute('aria-expanded') === 'true';
+    boton.setAttribute('aria-expanded', String(!abierto));
+    tooltip.classList.toggle('is-open', !abierto);
+    tooltip.classList.toggle('is-dismissed', abierto);
+    if (abierto) boton.blur();
+  });
+});
+
+document.addEventListener('click', (evento) => {
+  const dentroDeAyuda = evento.target.closest('.info-button[aria-controls], .info-tooltip');
+  if (dentroDeAyuda) return;
+
+  ayudas.forEach(({ boton, tooltip }) => {
+    boton.setAttribute('aria-expanded', 'false');
+    tooltip.classList.remove('is-open', 'is-dismissed');
+    boton.blur();
+  });
+});
+
+document.addEventListener('keydown', (evento) => {
+  if (evento.key !== 'Escape') return;
+
+  ayudas.forEach(({ boton, tooltip }) => {
+    boton.setAttribute('aria-expanded', 'false');
+    tooltip.classList.remove('is-open');
+    tooltip.classList.add('is-dismissed');
+    boton.blur();
+  });
+});
+
 elementos.btnCalcular.addEventListener('click', calcular);
 
 elementos.tipoTasa.addEventListener('change', () => {
