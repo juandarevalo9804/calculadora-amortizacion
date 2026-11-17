@@ -4,9 +4,7 @@ const elementos = {
   periodicidad: document.getElementById('periodicidad'),
   tipoTasa: document.getElementById('tipoTasa'),
   tasaValor: document.getElementById('tasaValor'),
-  periodoTasa: document.getElementById('periodoTasa'),
   capitalizacion: document.getElementById('capitalizacion'),
-  labelPeriodoTasa: document.getElementById('labelPeriodoTasa'),
   labelCapitalizacion: document.getElementById('labelCapitalizacion'),
   momentoPago: document.getElementById('momentoPago'),
   activarGracia: document.getElementById('activarGracia'),
@@ -37,8 +35,6 @@ const elementos = {
 let paginaGrafica = 0;
 let filasGraficaActuales = [];
 const PUNTOS_POR_PAGINA = 6;
-
-
 
 function actualizarCamposTasa() {
   const tipo = elementos.tipoTasa.value;

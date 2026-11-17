@@ -1,11 +1,3 @@
-const PERIODOS_POR_ANIO = {
-  anual: 1,
-  semestral: 2,
-  cuatrimestral: 3,
-  trimestral: 4,
-  mensual: 12
-};
-
 function formatMoney(valor) {
   const number = Number(valor || 0);
   return new Intl.NumberFormat('es-CO', {
@@ -78,10 +70,6 @@ function cuotaFija(P, i, n, anticipada = false) {
     return (capital * tasa) / factor;
   }
   return ((capital * tasa) / ((1 + tasa) * factor));
-}
-
-function cuotaVencida(P, i, n) {
-  return cuotaFija(P, i, n, false);
 }
 
 function obtenerAbonosMap(abonos, totalPeriodos) {
