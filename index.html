@@ -15,7 +15,7 @@
           <h2>Datos del crédito</h2>
           <label>
             <span>Monto del préstamo</span>
-            <input id="capital" type="number" value="200000000" min="100000" step="100000" />
+            <input id="capital" type="text" value="200000000" inputmode="numeric" autocomplete="off" />
           </label>
           <label>
             <span>Plazo en cuotas</span>
@@ -25,6 +25,7 @@
             <span>Periodicidad de pago</span>
             <select id="periodicidad">
               <option value="12">Mensual</option>
+              <option value="6">Bimestral</option>
               <option value="4">Trimestral</option>
               <option value="3">Cuatrimestral</option>
               <option value="2">Semestral</option>
@@ -50,8 +51,15 @@
             <input id="tasaValor" type="number" value="24.96" min="0" step="0.01" />
           </label>
           <label id="labelCapitalizacion">
-            <span>Capitalización anual</span>
-            <input id="capitalizacion" type="number" value="12" min="1" step="1" />
+            <span id="textoPeriodoTasa">Periodo de capitalización</span>
+            <select id="capitalizacion">
+              <option value="12">Mensual</option>
+              <option value="6">Bimestral</option>
+              <option value="4">Trimestral</option>
+              <option value="3">Cuatrimestral</option>
+              <option value="2">Semestral</option>
+              <option value="1">Anual</option>
+            </select>
           </label>
         </section>
 

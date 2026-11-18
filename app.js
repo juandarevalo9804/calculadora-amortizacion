@@ -6,6 +6,7 @@ const elementos = {
   tasaValor: document.getElementById('tasaValor'),
   capitalizacion: document.getElementById('capitalizacion'),
   labelCapitalizacion: document.getElementById('labelCapitalizacion'),
+  textoPeriodoTasa: document.getElementById('textoPeriodoTasa'),
   momentoPago: document.getElementById('momentoPago'),
   activarGracia: document.getElementById('activarGracia'),
   graciaPeriodos: document.getElementById('graciaPeriodos'),
@@ -32,6 +33,34 @@ const elementos = {
   conversionTexto: document.getElementById('conversionTexto')
 };
 
+function leerMonto(valor) {
+  const digitos = String(valor ?? '').replace(/\D/g, '');
+  return Number(digitos || 0);
+}
+
+function formatearMiles(valor) {
+  const digitos = String(valor).replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+  return digitos.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+function formatearCampoMonto(input) {
+  input.value = formatearMiles(input.value);
+  input.addEventListener('input', () => {
+    const posicion = input.selectionStart ?? input.value.length;
+    const digitosAntes = input.value.slice(0, posicion).replace(/\D/g, '').length;
+    input.value = formatearMiles(input.value);
+    let nuevaPosicion = 0;
+    let digitosContados = 0;
+
+    while (nuevaPosicion < input.value.length && digitosContados < digitosAntes) {
+      if (/\d/.test(input.value[nuevaPosicion])) digitosContados += 1;
+      nuevaPosicion += 1;
+    }
+
+    input.setSelectionRange(nuevaPosicion, nuevaPosicion);
+  });
+}
+
 let paginaGrafica = 0;
 let filasGraficaActuales = [];
 const PUNTOS_POR_PAGINA = 6;
@@ -39,7 +68,11 @@ const PUNTOS_POR_PAGINA = 6;
 function actualizarCamposTasa() {
   const tipo = elementos.tipoTasa.value;
   const esNominal = tipo === 'nominal_vencida' || tipo === 'nominal_anticipada';
-  elementos.labelCapitalizacion.style.display = esNominal ? '' : 'none';
+  const esEA = tipo === 'EA';
+  elementos.labelCapitalizacion.style.display = esEA ? 'none' : '';
+  elementos.textoPeriodoTasa.textContent = esNominal
+    ? 'Periodo de capitalización'
+    : 'Periodo de la tasa';
 }
 
 function crearFilaAbono(periodo = 1, valor = 1000000) {
@@ -53,11 +86,12 @@ function crearFilaAbono(periodo = 1, valor = 1000000) {
   inputPeriodo.placeholder = 'Per.';
 
   const inputValor = document.createElement('input');
-  inputValor.type = 'number';
+  inputValor.type = 'text';
   inputValor.value = valor;
-  inputValor.min = '0';
-  inputValor.step = '1000';
+  inputValor.inputMode = 'numeric';
+  inputValor.autocomplete = 'off';
   inputValor.placeholder = 'Monto';
+  formatearCampoMonto(inputValor);
 
   const inputFrecuencia = document.createElement('select');
   inputFrecuencia.innerHTML = `
@@ -88,7 +122,7 @@ function leerAbonos() {
   return filas.map((fila) => {
     const inputs = fila.querySelectorAll('input');
     const periodo = Number(inputs[0].value || 0);
-    const valor = Number(inputs[1].value || 0);
+    const valor = leerMonto(inputs[1].value);
     return {
       periodo,
       valor,
@@ -346,7 +380,7 @@ function calcular() {
     : Number(elementos.capitalizacion.value || 1);
 
   const config = {
-    capital: Number(elementos.capital.value || 0),
+    capital: leerMonto(elementos.capital.value),
     cuotas: Number(elementos.cuotas.value || 0),
     tasa: Number(elementos.tasaValor.value || 0),
     tipoTasa,
@@ -462,6 +496,8 @@ elementos.scenarioGrid.addEventListener('keydown', (evento) => {
   seleccionarEscenario(tarjeta.dataset.scenario);
 });
 
+formatearCampoMonto(elementos.capital);
+elementos.capital.addEventListener('input', calcular);
 elementos.listaAbonos.appendChild(crearFilaAbono(8, 38000000));
 actualizarCamposTasa();
 calcular();
