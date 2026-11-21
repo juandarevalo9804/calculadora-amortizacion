@@ -5,8 +5,7 @@ const elementos = {
   tipoTasa: document.getElementById('tipoTasa'),
   tasaValor: document.getElementById('tasaValor'),
   capitalizacion: document.getElementById('capitalizacion'),
-  labelCapitalizacion: document.getElementById('labelCapitalizacion'),
-  textoPeriodoTasa: document.getElementById('textoPeriodoTasa'),
+  porcentajeFinanciado: document.getElementById('porcentajeFinanciado'),
   momentoPago: document.getElementById('momentoPago'),
   activarGracia: document.getElementById('activarGracia'),
   graciaPeriodos: document.getElementById('graciaPeriodos'),
@@ -14,6 +13,7 @@ const elementos = {
   listaAbonos: document.getElementById('listaAbonos'),
   agregarAbono: document.getElementById('agregarAbono'),
   btnCalcular: document.getElementById('btnCalcular'),
+  errorCalculo: document.getElementById('errorCalculo'),
   escenarioActivo: document.getElementById('escenarioActivo'),
   scenarioGrid: document.getElementById('scenarioGrid'),
   mejorEscenario: document.getElementById('mejorEscenario'),
@@ -23,14 +23,14 @@ const elementos = {
   rangoGrafica: document.getElementById('rangoGrafica'),
   graficaAnterior: document.getElementById('graficaAnterior'),
   graficaSiguiente: document.getElementById('graficaSiguiente'),
-  valorEA: document.getElementById('valorEA'),
+  etiquetaTasaSeleccionada: document.getElementById('etiquetaTasaSeleccionada'),
+  valorTasaSeleccionada: document.getElementById('valorTasaSeleccionada'),
   valorCuota: document.getElementById('valorCuota'),
   valorCuotaBase: document.getElementById('valorCuotaBase'),
   valorIntereses: document.getElementById('valorIntereses'),
   resumenSinAbonos: document.getElementById('resumenSinAbonos'),
   resumenReducirPlazo: document.getElementById('resumenReducirPlazo'),
-  resumenReducirCuota: document.getElementById('resumenReducirCuota'),
-  conversionTexto: document.getElementById('conversionTexto')
+  resumenReducirCuota: document.getElementById('resumenReducirCuota')
 };
 
 function leerMonto(valor) {
@@ -64,15 +64,26 @@ function formatearCampoMonto(input) {
 let paginaGrafica = 0;
 let filasGraficaActuales = [];
 const PUNTOS_POR_PAGINA = 6;
+const LETRAS_PERIODOS_TASA = {
+  1: 'A',
+  2: 'S',
+  3: 'C',
+  4: 'T',
+  6: 'B',
+  12: 'M'
+};
 
-function actualizarCamposTasa() {
-  const tipo = elementos.tipoTasa.value;
-  const esNominal = tipo === 'nominal_vencida' || tipo === 'nominal_anticipada';
-  const esEA = tipo === 'EA';
-  elementos.labelCapitalizacion.style.display = esEA ? 'none' : '';
-  elementos.textoPeriodoTasa.textContent = esNominal
-    ? 'Periodo de capitalización'
-    : 'Periodo de la tasa';
+function obtenerAbreviaturaTasa(tipoTasa, periodo, anticipada) {
+  const letraPeriodo = LETRAS_PERIODOS_TASA[Number(periodo)];
+  if (!letraPeriodo) throw new Error('Periodo de tasa no soportado: ' + periodo);
+  const letraTipo = tipoTasa === 'nominal' ? 'N' : 'E';
+  return `${letraTipo}${letraPeriodo}${anticipada ? 'A' : ''}`;
+}
+
+function actualizarCamposGracia() {
+  const habilitado = elementos.activarGracia.checked;
+  elementos.graciaPeriodos.disabled = !habilitado;
+  elementos.tratamientoGracia.disabled = !habilitado;
 }
 
 function crearFilaAbono(periodo = 1, valor = 1000000) {
@@ -143,6 +154,7 @@ function dibujarTabla(filas) {
 
   const cuotasTotales = Number(elementos.cuotas.value || 0);
   const saldoInicial = Number(filas[0]?.saldoInicial ?? 0);
+  const periodosGracia = filas.filter((fila) => fila.tipo === 'gracia').length;
   const filaCero = {
     periodo: 0,
     saldo: saldoInicial,
@@ -165,7 +177,10 @@ function dibujarTabla(filas) {
     const interes = Number(fila.intereses || 0);
     const abono = Number(fila.abonoExtra || 0);
     const amortizacion = Number(fila.amortizacion || 0);
-    const cuotasPorPagar = Math.max(0, cuotasTotales - (Number(fila.periodo) || 0));
+    const cuotasPagadas = fila.tipo === 'gracia'
+      ? 0
+      : Math.max(0, (Number(fila.periodo) || 0) - periodosGracia);
+    const cuotasPorPagar = Math.max(0, cuotasTotales - cuotasPagadas);
 
     totalIntereses += interes;
     totalAbono += abono;
@@ -315,7 +330,13 @@ function actualizarResumen(data) {
     }
   };
 
-  elementos.valorEA.textContent = `${(conversion.ea * 100).toFixed(2)}%`;
+  const abreviatura = obtenerAbreviaturaTasa(
+    data.tipoTasa,
+    data.periodoTasa,
+    data.tasaAnticipada
+  );
+  elementos.etiquetaTasaSeleccionada.textContent = `Tasa ${abreviatura}`;
+  elementos.valorTasaSeleccionada.textContent = `${(conversion.valorOriginal * 100).toFixed(2)}%`;
   elementos.valorCuota.textContent = `${(conversion.i * 100).toFixed(4)}%`;
   elementos.valorCuotaBase.textContent = formatMoney(sinAbonos.cuota || 0);
   elementos.valorIntereses.textContent = formatMoney(sinAbonos.totalIntereses || 0);
@@ -331,7 +352,7 @@ function actualizarResumen(data) {
 
     datos.elemento.innerHTML = `
       <div class="scenario-metrics">
-        <div><span>Cuotas totales</span><strong>${datos.resultado.filas.length}</strong></div>
+        <div><span>Cuotas totales</span><strong>${datos.resultado.filas.filter((fila) => fila.tipo === 'amortizacion').length}</strong></div>
         <div><span>Cuota regular final</span><strong>${formatMoney(cuotaRegular || 0)}</strong></div>
         <div><span>Total intereses</span><strong>${formatMoney(datos.resultado.totalIntereses || 0)}</strong></div>
         ${ahorro}
@@ -361,41 +382,48 @@ function actualizarResumen(data) {
     }
   }
 
-  const texto = `
-    Tasa periódica vencida del periodo de pago: ${(conversion.i * 100).toFixed(4)}%<br>
-    Tasa periódica anticipada equivalente: ${(conversion.d * 100).toFixed(4)}%<br>
-    Tasa efectiva anual (EA): ${(conversion.ea * 100).toFixed(4)}%<br>
-    Tasa nominal vencida equivalente: ${(conversion.nominalVencida * 100).toFixed(4)}%<br>
-    Tasa nominal anticipada equivalente: ${(conversion.nominalAnticipada * 100).toFixed(4)}%
-  `;
-  elementos.conversionTexto.innerHTML = texto;
 }
 
 function calcular() {
+  elementos.errorCalculo.hidden = true;
+  elementos.errorCalculo.textContent = '';
+
   const tipoTasa = elementos.tipoTasa.value;
-  const esPeriodica = tipoTasa === 'periodica_vencida' || tipoTasa === 'periodica_anticipada';
   const periodicidad = Number(elementos.periodicidad.value || 12);
-  const capitalizacion = esPeriodica
-    ? periodicidad
-    : Number(elementos.capitalizacion.value || 1);
+  const capitalizacion = Number(elementos.capitalizacion.value || 1);
+  const monto = leerMonto(elementos.capital.value);
+  const porcentaje = Number(elementos.porcentajeFinanciado.value || 100);
+  const prestamo = monto * (Math.min(100, Math.max(0, porcentaje)) / 100);
 
   const config = {
-    capital: leerMonto(elementos.capital.value),
+    capital: prestamo,
     cuotas: Number(elementos.cuotas.value || 0),
     tasa: Number(elementos.tasaValor.value || 0),
     tipoTasa,
     capitalizacion,
     periodicidad,
+    tasaAnticipada: elementos.momentoPago.value === 'anticipada',
     momentoPago: elementos.momentoPago.value,
-    gracia: elementos.activarGracia.checked ? Number(elementos.graciaPeriodos.value || 0) : 0,
+    gracia: elementos.activarGracia.checked
+      ? Math.max(0, Math.floor(Number(elementos.graciaPeriodos.value) || 0))
+      : 0,
     tratamientoGracia: elementos.tratamientoGracia.value,
-    abonos: leerAbonos(),
-    escenario: elementos.escenarioActivo.value
+    abonos: leerAbonos()
   };
 
-  const sinAbonos = simularCredito({ ...config, escenario: 'sin_abonos', abonos: [] });
-  const reducirPlazo = simularCredito({ ...config, escenario: 'reducir_plazo' });
-  const reducirCuota = simularCredito({ ...config, escenario: 'reducir_cuota' });
+  let sinAbonos;
+  let reducirPlazo;
+  let reducirCuota;
+  try {
+    sinAbonos = simularCredito({ ...config, escenario: 'sin_abonos', abonos: [] });
+    reducirPlazo = simularCredito({ ...config, escenario: 'reducir_plazo' });
+    reducirCuota = simularCredito({ ...config, escenario: 'reducir_cuota' });
+  } catch (error) {
+    if (!(error instanceof Error) || error.name !== 'TasaConversionError') throw error;
+    elementos.errorCalculo.textContent = error.message;
+    elementos.errorCalculo.hidden = false;
+    return;
+  }
 
   const escenarioSeleccionado = elementos.escenarioActivo.value;
   let filasActivas = sinAbonos.filas;
@@ -406,6 +434,9 @@ function calcular() {
   dibujarGraficaSaldo(filasActivas);
   actualizarResumen({
     conversion: sinAbonos.conversion,
+    tipoTasa: config.tipoTasa,
+    periodoTasa: config.capitalizacion,
+    tasaAnticipada: config.tasaAnticipada,
     sinAbonos,
     reducirPlazo,
     reducirCuota,
@@ -461,10 +492,13 @@ document.addEventListener('keydown', (evento) => {
 
 elementos.btnCalcular.addEventListener('click', calcular);
 
-elementos.tipoTasa.addEventListener('change', () => {
-  actualizarCamposTasa();
+elementos.tipoTasa.addEventListener('change', calcular);
+elementos.activarGracia.addEventListener('change', () => {
+  actualizarCamposGracia();
   calcular();
 });
+elementos.graciaPeriodos.addEventListener('input', calcular);
+elementos.tratamientoGracia.addEventListener('change', calcular);
 
 elementos.escenarioActivo.addEventListener('change', calcular);
 elementos.graficaAnterior.addEventListener('click', () => {
@@ -498,6 +532,18 @@ elementos.scenarioGrid.addEventListener('keydown', (evento) => {
 
 formatearCampoMonto(elementos.capital);
 elementos.capital.addEventListener('input', calcular);
+[
+  elementos.cuotas,
+  elementos.periodicidad,
+  elementos.tasaValor,
+  elementos.capitalizacion,
+  elementos.momentoPago,
+  elementos.porcentajeFinanciado
+].forEach((control) => {
+  control.addEventListener('input', calcular);
+  control.addEventListener('change', calcular);
+});
 elementos.listaAbonos.appendChild(crearFilaAbono(8, 38000000));
-actualizarCamposTasa();
+actualizarCamposGracia();
+elementos.escenarioActivo.value = 'reducir_plazo';
 calcular();

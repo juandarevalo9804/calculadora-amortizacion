@@ -73,7 +73,7 @@ La tasa de entrada y la periodicidad de las cuotas son datos independientes. Por
 
 ## 4. En la efectiva anual, ¿dónde se cobran los intereses?
 
-La EA es, por definición, una tasa **vencida**: los intereses se causan al final del año y la tasa ya incluye la capitalización de los intereses intermedios. Por eso no tiene variante vencida o anticipada.
+La sigla **EA** identifica la tasa efectiva anual vencida. Si la tasa efectiva anual es anticipada, se identifica como **EAA** y se convierte primero a vencida con `i = d / (1 − d)`.
 
 La EA no dice cuándo pagas, solo cuánto crece el dinero en un año. La página la convierte a la tasa del periodo de pago:
 
@@ -83,20 +83,18 @@ i = (1 + EA)^(1/m) − 1
 
 Con 24,96 % EA y pagos mensuales, `i = 1,8742 %` mensual. Esa `i` es **vencida**: cada mes el interés se calcula sobre el saldo y se cobra al final del mes. Doce meses a 1,8742 % dan exactamente 24,96 % en el año.
 
-### Dónde se decide si se cobra al inicio o al final
+### Selector de tasa y momento del pago
 
-Eso lo decide la casilla **"Cuotas al inicio del periodo"**, que es independiente de la tasa:
+Aunque la tasa y el momento de pago son conceptos distintos, en la calculadora se eligen juntos en un solo selector:
 
-| Situación | Resultado |
+| Selección | Resultado |
 |---|---|
-| EA y casilla desmarcada | Cuotas e intereses al final de cada periodo (el caso normal) |
-| EA y casilla marcada | La tasa sigue siendo vencida, pero la primera cuota se paga en el momento 0 y todas se pagan al inicio del periodo |
+| Vencida | La tasa se usa vencida y las cuotas se pagan al final del periodo |
+| Anticipada | La tasa se convierte a vencida equivalente y las cuotas se pagan al inicio; la primera cuota no genera intereses |
 
-Cuando eliges un tipo de tasa anticipado, la casilla se marca sola. Puedes desmarcarla si tu crédito tiene tasa anticipada pero cobra las cuotas al final.
+### Efectiva anual anticipada (EAA)
 
-### Nota sobre la "efectiva anual anticipada"
-
-Si un banco ofrece una tasa "efectiva anual anticipada" (poco común), no es lo mismo que una EA. Se convierte con `EA = d / (1 − d)`. La página todavía no tiene esa opción: sus tasas anticipadas son nominales o periódicas.
+La tasa efectiva anual anticipada se identifica como **EAA** y no es lo mismo que EA. Se convierte primero de anticipada a vencida con `i = d / (1 − d)`; luego se pasa al periodo de pago. La calculadora permite seleccionarla como efectiva, periodo anual y tasa anticipada.
 
 ---
 

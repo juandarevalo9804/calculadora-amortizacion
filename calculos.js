@@ -15,47 +15,67 @@ function normalizarTipo(valor) {
   return String(valor || '').trim().toLowerCase().replace(/\s+/g, '_');
 }
 
-function convertirTasa(valor, tipo, capitalizacion = 12, periodicidadPago = 12) {
+class TasaConversionError extends Error {
+  constructor(mensaje) {
+    super(mensaje);
+    this.name = 'TasaConversionError';
+  }
+}
+
+function convertirTasa(
+  valor,
+  tipo,
+  capitalizacion = 12,
+  periodicidadPago = 12,
+  tipoPeriodo = 'vencida'
+) {
   const tasa = Number(valor) / 100;
   const tipoNorm = normalizarTipo(tipo);
-  let p = tasa;
-
-  let ea = 0;
-
-  if (tipoNorm === 'ea') {
-    ea = tasa;
-  } else if (tipoNorm === 'nominal_vencida') {
-    p = tasa / Number(capitalizacion || 1);
-    ea = Math.pow(1 + p, Number(capitalizacion || 1)) - 1;
-  } else if (tipoNorm === 'nominal_anticipada') {
-    const d = (tasa / Number(capitalizacion || 1));
-    p = d / (1 - d);
-    ea = Math.pow(1 + p, Number(capitalizacion || 1)) - 1;
-  } else if (tipoNorm === 'periodica_anticipada') {
-    p = tasa / (1 - tasa);
-    ea = Math.pow(1 + p, Number(capitalizacion || 1)) - 1;
-  } else if (tipoNorm === 'periodica_vencida') {
-    p = tasa;
-    ea = Math.pow(1 + p, Number(capitalizacion || 1)) - 1;
-  } else {
-    throw new Error('Tipo de tasa no soportado: ' + tipo);
+  const mTasa = Number(capitalizacion);
+  const mPago = Number(periodicidadPago);
+  if (!Number.isFinite(mTasa) || !Number.isFinite(mPago) || mTasa <= 0 || mPago <= 0) {
+    throw new TasaConversionError('Los periodos de tasa y pago deben ser mayores que cero');
+  }
+  if (!Number.isFinite(tasa) || tasa < 0) throw new TasaConversionError('La tasa debe ser un número positivo');
+  if (tipoNorm !== 'efectiva' && tipoNorm !== 'nominal') {
+    throw new TasaConversionError('Tipo de tasa no soportado: ' + tipo);
+  }
+  if (tipoPeriodo !== 'vencida' && tipoPeriodo !== 'anticipada') {
+    throw new TasaConversionError('El periodo de la tasa debe ser vencido o anticipado');
   }
 
-  const i = Math.pow(1 + ea, 1 / Number(periodicidadPago || 1)) - 1;
+  let tasaPeriodo = tipoNorm === 'nominal' ? tasa / mTasa : tasa;
+
+  if (tipoPeriodo === 'anticipada') {
+    if (tasaPeriodo >= 1) {
+      throw new TasaConversionError('La tasa anticipada debe ser menor que 100% en su periodo');
+    }
+    tasaPeriodo = tasaPeriodo / (1 - tasaPeriodo);
+  }
+
+  if (!Number.isFinite(tasaPeriodo) || 1 + tasaPeriodo <= 0) {
+    throw new TasaConversionError('La tasa vencida equivalente no es válida');
+  }
+
+  const i = Math.pow(1 + tasaPeriodo, mTasa / mPago) - 1;
+  const ea = Math.pow(1 + i, mPago) - 1;
+  if (!Number.isFinite(i) || !Number.isFinite(ea)) {
+    throw new TasaConversionError('No se pudo convertir la tasa con los periodos indicados');
+  }
   const d = i / (1 + i);
-  const nominalVencida = i * Number(periodicidadPago || 1);
-  const nominalAnticipada = d * Number(periodicidadPago || 1);
+  const nominalVencida = i * mPago;
+  const nominalAnticipada = d * mPago;
 
   return {
     valorOriginal: tasa,
-    tasaPeriodica: p,
+    tasaPeriodica: tasaPeriodo,
     ea,
     i,
     d,
     nominalVencida,
     nominalAnticipada,
-    capitalizacion: Number(capitalizacion || 1),
-    periodicidadPago: Number(periodicidadPago || 1)
+    capitalizacion: mTasa,
+    periodicidadPago: mPago
   };
 }
 
@@ -98,6 +118,7 @@ function simularCredito({
   tipoTasa,
   capitalizacion,
   periodicidad,
+  tasaAnticipada = false,
   momentoPago,
   gracia = 0,
   tratamientoGracia = 'capitaliza',
@@ -108,7 +129,13 @@ function simularCredito({
   const cuotaTotal = Number(cuotas) || 0;
   if (capitalBase <= 0 || cuotaTotal <= 0) return { filas: [], conversion: null, cuota: 0, totalIntereses: 0 };
 
-  const conversion = convertirTasa(tasa, tipoTasa, capitalizacion, periodicidad);
+  const conversion = convertirTasa(
+    tasa,
+    tipoTasa,
+    capitalizacion,
+    periodicidad,
+    tasaAnticipada ? 'anticipada' : 'vencida'
+  );
   const i = conversion.i;
   const totalPeriodos = gracia + cuotaTotal;
   const abonosMap = obtenerAbonosMap(abonos, totalPeriodos);
@@ -140,7 +167,7 @@ function simularCredito({
       }
     } else {
       const periodoReal = periodo - gracia;
-      if (escenario === 'reducir_cuota' && periodoReal === 1) {
+      if (periodoReal === 1) {
         cuotaActual = cuotaFija(saldoInicial, i, cuotaTotal, momentoPago === 'anticipada');
       }
 
@@ -167,12 +194,17 @@ function simularCredito({
       }
 
       if (
-        escenario === 'reducir_cuota'
+        (escenario === 'reducir_cuota' || escenario === 'mantener_cuota')
         && abonoExtra > 0
         && periodoReal < cuotaTotal
         && saldoFinal > 0
       ) {
-        cuotaActual = cuotaFija(saldoFinal, i, cuotaTotal - periodoReal);
+        cuotaActual = cuotaFija(
+          saldoFinal,
+          i,
+          cuotaTotal - periodoReal,
+          momentoPago === 'anticipada'
+        );
       }
     }
 
@@ -202,5 +234,14 @@ function simularCredito({
     cuota: cuotaActual,
     totalIntereses: redondear(totalIntereses),
     totalPagado: redondear(totalPagado)
+  };
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    convertirTasa,
+    cuotaFija,
+    obtenerAbonosMap,
+    simularCredito
   };
 }

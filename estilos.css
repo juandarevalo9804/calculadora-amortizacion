@@ -174,6 +174,17 @@ select:focus {
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
+.calculation-error {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.9rem;
+}
+
+.calculation-error[hidden] {
+  display: none;
+}
+
 .primary-btn {
   grid-column: 1 / -1;
   margin-top: 18px;
@@ -238,7 +249,6 @@ select:focus {
 
 .card,
 .scenario-card,
-.conversion-block,
 .table-panel {
   background: var(--panel-alt);
   border: 1px solid var(--border);
@@ -260,7 +270,6 @@ select:focus {
 }
 
 .scenario-panel h2,
-.conversion-block h2,
 .table-panel h2 {
   margin-top: 0;
   margin-bottom: 14px;
@@ -329,16 +338,6 @@ select:focus {
   border-radius: 10px;
   background: var(--panel-alt);
   line-height: 1.5;
-}
-
-.conversion-block {
-  margin-top: 22px;
-}
-
-.conversion-text {
-  color: var(--text);
-  line-height: 1.7;
-  font-size: 0.96rem;
 }
 
 .table-panel {

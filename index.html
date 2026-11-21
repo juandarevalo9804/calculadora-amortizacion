@@ -18,13 +18,17 @@
             <input id="capital" type="text" value="200000000" inputmode="numeric" autocomplete="off" />
           </label>
           <label>
+            <span>% financiado</span>
+            <input id="porcentajeFinanciado" type="number" value="100" min="1" max="100" step="1" />
+          </label>
+          <label>
             <span>Plazo en cuotas</span>
             <input id="cuotas" type="number" value="24" min="1" step="1" />
           </label>
           <label>
             <span>Periodicidad de pago</span>
             <select id="periodicidad">
-              <option value="12">Mensual</option>
+              <option value="12" selected>Mensual</option>
               <option value="6">Bimestral</option>
               <option value="4">Trimestral</option>
               <option value="3">Cuatrimestral</option>
@@ -39,27 +43,24 @@
           <label>
             <span>Tipo</span>
             <select id="tipoTasa">
-              <option value="EA">Efectiva anual (EA)</option>
-              <option value="nominal_vencida">Nominal vencida</option>
-              <option value="nominal_anticipada">Nominal anticipada</option>
-              <option value="periodica_vencida">Periódica vencida</option>
-              <option value="periodica_anticipada">Periódica anticipada</option>
+              <option value="efectiva">Efectiva</option>
+              <option value="nominal">Nominal</option>
             </select>
           </label>
-          <label>
-            <span>Valor</span>
-            <input id="tasaValor" type="number" value="24.96" min="0" step="0.01" />
-          </label>
           <label id="labelCapitalizacion">
-            <span id="textoPeriodoTasa">Periodo de capitalización</span>
+            <span id="textoPeriodoTasa">Periodo de la tasa</span>
             <select id="capitalizacion">
               <option value="12">Mensual</option>
               <option value="6">Bimestral</option>
               <option value="4">Trimestral</option>
               <option value="3">Cuatrimestral</option>
               <option value="2">Semestral</option>
-              <option value="1">Anual</option>
+              <option value="1" selected>Anual</option>
             </select>
+          </label>
+          <label>
+            <span>Valor</span>
+            <input id="tasaValor" type="number" value="24.96" min="0" step="0.01" />
           </label>
         </section>
 
@@ -69,18 +70,18 @@
             <button
               class="info-button"
               type="button"
-              aria-label="Explicación del momento del pago"
+              aria-label="Explicación de tasa y momento del pago"
               aria-expanded="false"
               aria-controls="ayudaMomentoPago"
               aria-describedby="ayudaMomentoPago"
             >i</button>
             <span id="ayudaMomentoPago" class="info-tooltip" role="tooltip">
-              <strong>Vencida:</strong> la cuota se paga al final del periodo; los intereses de ese periodo se calculan sobre el saldo.<br>
-              <strong>Anticipada:</strong> la cuota se paga al inicio del periodo. La primera cuota se paga en el periodo cero y no genera intereses.
+              <strong>Vencida:</strong> la tasa se usa vencida y la cuota se paga al final del periodo.<br>
+              <strong>Anticipada:</strong> la tasa se convierte a vencida equivalente y las cuotas se pagan al inicio. La primera cuota no genera intereses.
             </span>
           </h2>
           <label>
-            <span>Momento del pago</span>
+            <span>Tasa y momento del pago</span>
             <select id="momentoPago">
               <option value="vencida">Vencida</option>
               <option value="anticipada">Anticipada</option>
@@ -100,23 +101,23 @@
               aria-describedby="ayudaGracia"
             >i</button>
             <span id="ayudaGracia" class="info-tooltip" role="tooltip">
-              <strong>Se capitalizan:</strong> no pagas intereses durante la gracia; se agregan al saldo del préstamo, que crece y genera intereses.<br>
-              <strong>Se pagan solo intereses:</strong> pagas los intereses de cada periodo de gracia y el saldo del capital permanece igual.
+              <strong>Se capitalizan:</strong> los intereses se agregan al saldo y generan intereses durante la gracia.<br>
+              <strong>Se pagan solo intereses:</strong> el capital permanece igual y se paga el interés de cada periodo.
             </span>
           </h2>
           <label class="inline">
             <input id="activarGracia" type="checkbox" />
-            <span>Activar gracia</span>
+            <span>Activar período de gracia</span>
           </label>
           <label>
             <span>Número de periodos</span>
-            <input id="graciaPeriodos" type="number" value="0" min="0" step="1" />
+            <input id="graciaPeriodos" type="number" value="0" min="0" step="1" disabled />
           </label>
           <label>
             <span>Tratamiento</span>
-            <select id="tratamientoGracia">
-              <option value="capitaliza">Se capitalizan</option>
-              <option value="intereses">Se pagan solo intereses</option>
+            <select id="tratamientoGracia" disabled>
+              <option value="capitaliza">Capitalizar intereses</option>
+              <option value="intereses">Pagar solo intereses</option>
             </select>
           </label>
         </section>
@@ -127,14 +128,15 @@
           <button id="agregarAbono" type="button" class="secondary-btn">Agregar abono</button>
         </section>
 
+        <p id="errorCalculo" class="calculation-error" role="alert" hidden></p>
         <button id="btnCalcular" class="primary-btn" type="button">Calcular</button>
       </aside>
 
       <main class="main-panel">
         <header class="overview">
           <div class="card">
-            <h3>Tasa E.A.</h3>
-            <strong id="valorEA">-</strong>
+            <h3 id="etiquetaTasaSeleccionada">Tasa EA</h3>
+            <strong id="valorTasaSeleccionada">-</strong>
           </div>
           <div class="card">
             <h3>Tasa por cuota</h3>
@@ -169,11 +171,6 @@
           <div id="mejorEscenario" class="scenario-verdict" aria-live="polite"></div>
         </section>
 
-        <section class="conversion-block">
-          <h2>Conversión de tasas</h2>
-          <div id="conversionTexto" class="conversion-text"></div>
-        </section>
-
         <section class="table-panel">
           <div class="table-header">
             <h2>Tabla de amortización</h2>
@@ -181,8 +178,8 @@
               <span>Escenario</span>
               <select id="escenarioActivo">
                 <option value="sin_abonos">Sin abonos</option>
-                <option value="reducir_plazo">Reducir plazo</option>
-                <option value="reducir_cuota" selected>Reducir cuota</option>
+                <option value="reducir_plazo" selected>Reducir plazo</option>
+                <option value="reducir_cuota">Reducir cuota</option>
               </select>
             </label>
           </div>
