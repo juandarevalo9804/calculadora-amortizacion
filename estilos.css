@@ -38,7 +38,8 @@ body {
 }
 
 .sidebar,
-.main-panel {
+.main-panel,
+.footer {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 18px;
@@ -236,7 +237,8 @@ select:focus {
   font-weight: bold;
 }
 
-.main-panel {
+.main-panel,
+.footer {
   padding: 20px;
 }
 
@@ -506,6 +508,29 @@ tr.extra {
   text-align: left;
 }
 
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem;
+}
+
+.footer .integrantes {
+  display: flex;
+  justify-content: center;
+  align-content: center;
+  gap: 6px;
+}
+
+.footer .integrantes .titulo {
+  font-weight: bold;
+}
+
+.footer .escudo img {
+  height: 6em;
+}
+
 @media (max-width: 980px) {
   .sidebar {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -562,5 +587,10 @@ tr.extra {
   td {
     padding: 9px 7px;
     white-space: nowrap;
+  }
+
+  .footer {
+    flex-direction: column;
+    align-items: center;
   }
 }
